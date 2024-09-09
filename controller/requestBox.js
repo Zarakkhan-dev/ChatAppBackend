@@ -92,7 +92,6 @@ exports.connectionconversation = async (req, res) => {
       .select("_id");
 
     requestreceiptID = requestreceiptID._id.toString();
-    console.log(requestreceiptID);
     if (requestreceiptID) {
       let autenticate = ConnectedConversation({
         members: [

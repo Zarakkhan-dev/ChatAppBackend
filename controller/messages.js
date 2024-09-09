@@ -3,11 +3,9 @@ const useraccount = require("../model/useraccount");
 const Message = require("../model/message")
 exports.converstionid = async (req, res) => {
   const { senderId } = req.body;
-
   try {
     let authenicateid = await ConnectedConversation.findOne({members: senderId,});
     if (authenicateid !== null) {
-      console.log(authenicateid.members);
       let authenicate = authenicateid.members.filter((item) => {
         return item !== senderId;
       });
@@ -40,10 +38,31 @@ exports.messages = async (req,res) =>{
             message
         })
 
-        await authenicate.save();
+        authenicate  = await authenicate.save();
 
-        res.status(200).json({message:"Message send Successfully"})
+        if(authenicate){
+          res.status(200).json({message:"Message send Successfully"})
+        }
+        else{
+          res.status(201).json({message:"Message send Successfully"})
+        }
     } catch (error) {
         console.log(error)
     }
-}   
+} 
+
+exports.allmessage = async (req,res)=>{
+  try {
+
+    const {ConversationID} = req.params ;
+    const authenticate = await Message.find({ConversationID});
+     if(authenticate) {
+      res.status(200).json ({authenticate});
+     }
+     else{
+      res.status(200).json ({message: "No message"});
+     }
+  } catch (error) {
+    console.log(error)
+  }
+}

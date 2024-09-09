@@ -88,32 +88,56 @@ exports.allavailableuserforfriendrequest = async(req ,res) =>{
     }
 }
 
-exports.friendlist = async(req,res) =>{  
+exports.friendlist = async (req, res) => {  
+    const { userid } = req.params;
+    const userId = userid.toString();
 
-    const {userid} =req.params
-    console.log(userid)
-
-    let userId = userid.toString();
     try {
-        let response = await  ConnectedConversation.find({members:userId})
-          response.map((items)=>{
-            console.log(items.id);
-            items.members = items.members.filter((item)=> item !== userId)
-        })
-        console.log(response);
+        // Fetch conversations where the user is a member
+        let response = await ConnectedConversation.find({ members: userId });
+        
+        // Filter out the userId from each conversation's members
+        response = response.map((items) => {
+            items.members = items.members.filter((item) => item !== userId);
+            return items;
+        });
 
-        const Friendlist  = await Promise.all(  response.map(async (items)=>{
-            conversationId = items.id;
-            conversationMembersID = items.members[0] ;
-            FriendName = await user.findById(conversationMembersID).select("username");
-            return {
-                conversationId,
-                conversationMembersID,
-                FriendName:FriendName.username
-            }
-        }))
-        console.log(Friendlist)
+        // If no conversations are found, return 404
+        if (response.length === 0) {
+            return res.status(404).json({ message: "No friend found" });
+        }
+
+        // Create a friend list by fetching member details
+        const friendList = await Promise.all(
+            response.map(async (items) => {
+                const conversationId = items.id;
+                const conversationMembersID = items.members[0]; // Assuming the other member is at index 0
+
+                // Fetch the friend's username
+                const friend = await user.findById(conversationMembersID).select("username");
+
+                // If the friend doesn't exist, return null
+                if (!friend) {
+                    return null;
+                }
+
+                return {
+                    conversationId,
+                    conversationMembersID,
+                    friendName: friend.username
+                };
+            })
+        );
+
+        // Filter out any null entries in the friend list (in case any user lookups failed)
+        const filteredFriendList = friendList.filter(item => item !== null);
+        console.log(filteredFriendList)
+        // Return the final friend list
+        res.status(200).json(filteredFriendList);
+
     } catch (error) {
-        console.log(error)
+        // Handle any errors
+        console.error(error);
+        res.status(500).json({ message: "An error occurred", error });
     }
-}
+};
